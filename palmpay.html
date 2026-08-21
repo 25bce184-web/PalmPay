@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PalmPay — Palm Payment Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --void: #0A0B0D;
+            --panel: #131519;
+            --panel-2: #191B20;
+            --panel-3: #1F2228;
+            --line: #262A31;
+            --line-soft: #1D2027;
+            --bronze: #CE9563;
+            --bronze-dim: rgba(206, 149, 99, 0.14);
+            --plum: #8C6FBF;
+            --plum-dim: rgba(140, 111, 191, 0.14);
+            --teal: #41CDB0;
+            --teal-dim: rgba(65, 205, 176, 0.14);
+            --red: #E2604F;
+            --red-dim: rgba(226, 96, 79, 0.14);
+            --ink: #F1EFEA;
+            --ink-dim: #93989E;
+            --ink-faint: #565C63;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--void);
+            color: var(--ink);
+            font-family: 'Space Grotesk', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(ellipse 700px 500px at 10% -5%, rgba(206, 149, 99, 0.09), transparent 55%),
+                radial-gradient(ellipse 600px 500px at 95% 10%, rgba(140, 111, 191, 0.08), transparent 55%),
+                radial-gradient(ellipse 700px 600px at 50% 110%, rgba(65, 205, 176, 0.06), transparent 55%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.035;
+            mix-blend-mode: overlay;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .serif {
+            font-family: 'Fraunces', serif;
+        }
+
+        /* ---------- SCREEN MANAGEMENT ---------- */
+        .screen {
+            display: none;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadein .35s ease;
+        }
+
+        @keyframes fadein {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* ---------- TOPBAR ---------- */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 32px;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            background: rgba(10, 11, 13, 0.86);
+            backdrop-filter: blur(14px);
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--bronze), #7a4f2c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 4px 14px -4px rgba(206, 149, 99, 0.6);
+        }
+
+        .brand-name {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-size: 16px;
+        }
+
+        .brand-tag {
+            color: var(--ink-faint);
+            font-size: 10.5px;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            margin-left: 9px;
+            padding-left: 9px;
+            border-left: 1px solid var(--line);
+        }
+
+        .nav-pill {
+            display: flex;
+            gap: 3px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 100px;
+            padding: 4px;
+        }
+
+        .nav-pill button {
+            background: none;
+            border: none;
+            color: var(--ink-dim);
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .nav-pill button.on {
+            background: var(--bronze);
+            color: #1a1108;
+        }
+
+        .nav-pill button:not(.on):hover {
+            color: var(--ink);
+        }
+
+        /* ---------- HERO ---------- */
+        .hero {
+            padding: 76px 32px 40px;
+            max-width: 1080px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--teal);
+            font-family: 'IBM Plex Mono';
+            font-size: 11.5px;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            border: 1px solid var(--teal-dim);
+            background: var(--teal-dim);
+            padding: 6px 14px;
+            border-radius: 100px;
+            margin-bottom: 26px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--teal);
+            animation: pulse 1.6s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .3;
+            }
+        }
+
+        h1.hero-title {
+            font-family: 'Fraunces', serif;
+            font-weight: 500;
+            font-size: 56px;
+            line-height: 1.08;
+            letter-spacing: -1px;
+            margin-bottom: 22px;
+        }
+
+        h1.hero-title em {
+            color: var(--bronze);
+            font-style: italic;
+            font-weight: 500;
+        }
+
+        .hero-sub {
+            color: var(--ink-dim);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto 34px;
+            line-height: 1.65;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 13.5px;
+            padding: 14px 26px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s, opacity .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--bronze);
+            color: #1a1108;
+            box-shadow: 0 8px 24px -8px rgba(206, 149, 99, 0.55);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 10px 30px -6px rgba(206, 149, 99, 0.75);
+        }
+
+        .btn-ghost {
+            background: var(--panel);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--bronze);
+        }
+
+        /* architecture strip */
+        .arch {
+            max-width: 1080px;
+            margin: 56px auto;
+            padding: 0 32px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        @media(max-width:900px) {
+            .arch {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .arch-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .arch-num {
+            font-family: 'IBM Plex Mono';
+            font-size: 10.5px;
+            color: var(--ink-faint);
+            letter-spacing: 1px;
+        }
+
+        .arch-card h3 {
+            font-size: 15px;
+            margin: 9px 0 7px;
+            font-weight: 600;
+        }
+
+        .arch-card p {
+            font-size: 12.5px;
+            color: var(--ink-dim);
+            line-height: 1.55;
+        }
+
+        .arch-card.cnn {
+            border-color: rgba(206, 149, 99, 0.35);
+        }
+
+        .arch-card.gnn {
+            border-color: rgba(140, 111, 191, 0.35);
+        }
+
+        .arch-card.live {
+            border-color: rgba(65, 205, 176, 0.3);
+        }
+
+        .arch-card.wallet {
+            border-color: rgba(226, 96, 79, 0.25);
+        }
+
+        /* ---------- REGISTER ---------- */
+        .stage {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 44px 32px 90px;
+        }
+
+        .stage-head {
+            margin-bottom: 30px;
+        }
+
+        .stage-head h2 {
+            font-family: 'Fraunces', serif;
+            font-weight: 500;
+            font-size: 27px;
+            letter-spacing: -0.3px;
+            margin-bottom: 7px;
+        }
+
+        .stage-head p {
+            color: var(--ink-dim);
+            font-size: 13.5px;
+        }
+
+        .reg-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 26px;
+        }
+
+        @media(max-width:800px) {
+            .reg-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scan-box {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .cam-wrap {
+            position: relative;
+            aspect-ratio: 4/3;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid var(--line);
+        }
+
+        video,
+        canvas.overlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        video {
+            transform: scaleX(-1);
+        }
+
+        canvas.overlay {
+            pointer-events: none;
+        }
+
+        .cam-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--ink-faint);
+            font-size: 12.5px;
+            text-align: center;
+            padding: 20px;
+            z-index: 2;
+            background: var(--panel-2);
+        }
+
+        .hand-icon {
+            font-size: 32px;
+            opacity: .5;
+        }
+
+        .scan-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .status-line {
+            margin-top: 14px;
+            font-family: 'IBM Plex Mono';
+            font-size: 11.5px;
+            color: var(--teal);
+            min-height: 32px;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-track {
+            height: 4px;
+            border-radius: 3px;
+            background: var(--panel-2);
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--bronze), var(--teal));
+            transition: width .15s linear;
+        }
+
+        .reg-form {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .field label {
+            font-size: 11.5px;
+            color: var(--ink-dim);
+            display: block;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        .field input {
+            width: 100%;
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--ink);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .field input:focus {
+            border-color: var(--bronze);
+        }
+
+        .slot-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .slot {
+            flex: 1;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            border: 1.5px dashed var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background: var(--panel-2);
+        }
+
+        .slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slot .tag {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            right: 4px;
+            font-size: 8.5px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.65);
+            border-radius: 6px;
+            padding: 2px 0;
+            font-family: 'IBM Plex Mono';
+        }
+
+        .slot.filled {
+            border-style: solid;
+            border-color: var(--teal);
+        }
+
+        .slot.empty {
+            color: var(--ink-faint);
+            font-size: 10.5px;
+        }
+
+        .users-strip {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 0 32px 40px;
+        }
+
+        .users-strip h3 {
+            font-size: 12px;
+            color: var(--ink-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 14px;
+        }
+
+        .user-cards {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .user-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 220px;
+            position: relative;
+        }
+
+        .user-card img {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--teal);
+        }
+
+        .user-card .uinfo {
+            font-size: 12px;
+            flex: 1;
+        }
+
+        .user-card .uinfo b {
+            font-size: 13px;
+            display: block;
+        }
+
+        .user-card .ubal {
+            color: var(--teal);
+            font-family: 'IBM Plex Mono';
+            font-size: 10.5px;
+        }
+
+        .btn-del-user {
+            background: rgba(226, 96, 79, 0.12);
+            color: var(--red);
+            border: 1px solid rgba(226, 96, 79, 0.35);
+            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all .15s ease;
+            margin-left: 6px;
+        }
+
+        .btn-del-user:hover {
+            background: var(--red);
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        .slot .slot-del-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(226, 96, 79, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: all .15s ease;
+        }
+
+        .slot .slot-del-btn:hover {
+            background: var(--red);
+            transform: scale(1.15);
+        }
+
+        /* ---------- PAY SCREEN ---------- */
+        .pay-wrap {
+            max-width: 1150px;
+            margin: 0 auto;
+            padding: 34px 32px 90px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+        }
+
+        @media(max-width:860px) {
+            .pay-wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pay-left {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pay-left h3 {
+            font-size: 13px;
+            margin-bottom: 14px;
+            color: var(--ink-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.1px;
+        }
+
+        .scan-frame {
+            position: relative;
+            flex: 1;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            min-height: 320px;
+            border: 1px solid var(--line);
+        }
+
+        .scan-frame .corner {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-color: var(--bronze);
+            z-index: 5;
+        }
+
+        .corner.tl {
+            top: 12px;
+            left: 12px;
+            border-top: 3px solid;
+            border-left: 3px solid;
+            border-radius: 6px 0 0 0;
+        }
+
+        .corner.tr {
+            top: 12px;
+            right: 12px;
+            border-top: 3px solid;
+            border-right: 3px solid;
+            border-radius: 0 6px 0 0;
+        }
+
+        .corner.bl {
+            bottom: 12px;
+            left: 12px;
+            border-bottom: 3px solid;
+            border-left: 3px solid;
+            border-radius: 0 0 0 6px;
+        }
+
+        .corner.br {
+            bottom: 12px;
+            right: 12px;
+            border-bottom: 3px solid;
+            border-right: 3px solid;
+            border-radius: 0 0 6px 0;
+        }
+
+        .scanline {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--teal), transparent);
+            box-shadow: 0 0 16px 3px var(--teal);
+            top: 0;
+            opacity: 0;
+            z-index: 4;
+        }
+
+        .scanline.active {
+            animation: scanmove 1.4s linear infinite;
+        }
+
+        @keyframes scanmove {
+            0% {
+                top: 6%;
+                opacity: 1;
+            }
+
+            95% {
+                top: 92%;
+                opacity: 1;
+            }
+
+            100% {
+                top: 92%;
+                opacity: 0;
+            }
+        }
+
+        .crop-box {
+            position: absolute;
+            border: 1.5px solid var(--teal);
+            border-radius: 8px;
+            z-index: 6;
+            pointer-events: none;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transition: opacity .2s;
+        }
+
+        .crop-box.show {
+            opacity: 1;
+        }
+
+        .crop-label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            font-family: 'IBM Plex Mono';
+            font-size: 9.5px;
+            color: var(--teal);
+            white-space: nowrap;
+        }
+
+        .picker {
+            margin-top: 14px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .picker button {
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 12px;
+            color: var(--ink-dim);
+            font-family: inherit;
+            font-size: 11.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .picker button.sel {
+            border-color: var(--bronze);
+            color: var(--ink);
+            background: var(--bronze-dim);
+        }
+
+        .picker img {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .picker-note {
+            font-size: 10.5px;
+            color: var(--ink-faint);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .pay-right {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .amount-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 22px;
+        }
+
+        .amount-card h3 {
+            font-size: 13px;
+            color: var(--ink-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.1px;
+            margin-bottom: 16px;
+        }
+
+        .amount-display {
+            font-family: 'IBM Plex Mono';
+            font-size: 40px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+        }
+
+        .amount-display span {
+            color: var(--ink-faint);
+            font-size: 21px;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .keypad button {
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 13px 0;
+            font-family: 'IBM Plex Mono';
+            font-size: 15px;
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .keypad button:hover {
+            border-color: var(--bronze);
+        }
+
+        .merchant-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: var(--ink-dim);
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+        }
+
+        .mode-toggle {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 18px 22px;
+        }
+
+        .mode-toggle h3 {
+            font-size: 13px;
+            color: var(--ink-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.1px;
+            margin-bottom: 12px;
+        }
+
+        .mode-switch {
+            display: flex;
+            background: var(--panel-2);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .mode-switch button {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--ink-dim);
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 9px;
+            cursor: pointer;
+        }
+
+        .mode-switch button.sel {
+            background: var(--bronze);
+            color: #1a1108;
+        }
+
+        .mode-note {
+            font-size: 11px;
+            color: var(--ink-faint);
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        .verify-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 22px;
+            flex: 1;
+        }
+
+        .verify-card h3 {
+            font-size: 13px;
+            color: var(--ink-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.1px;
+            margin-bottom: 14px;
+        }
+
+        .vstep {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .vstep:last-child {
+            border-bottom: none;
+        }
+
+        .vicon {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            border: 1.5px solid var(--line);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11.5px;
+            margin-top: 1px;
+            transition: all .3s;
+        }
+
+        .vstep.done .vicon {
+            background: var(--teal);
+            border-color: var(--teal);
+            color: #04211b;
+        }
+
+        .vstep.fail .vicon {
+            background: var(--red);
+            border-color: var(--red);
+            color: #2a0906;
+        }
+
+        .vstep.active .vicon {
+            border-color: var(--bronze);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .vtext {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .vtext b {
+            display: block;
+            font-size: 12.5px;
+        }
+
+        .vtext span {
+            font-size: 11px;
+            color: var(--ink-faint);
+            font-family: 'IBM Plex Mono';
+        }
+
+        .gnn-canvas {
+            width: 100%;
+            height: 64px;
+            margin-top: 6px;
+        }
+
+        .rank-panel {
+            margin-top: 6px;
+        }
+
+        .rank-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .rank-name {
+            font-size: 10.5px;
+            width: 70px;
+            flex-shrink: 0;
+            color: var(--ink-dim);
+            font-family: 'IBM Plex Mono';
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rank-bar-track {
+            flex: 1;
+            height: 6px;
+            background: var(--panel-2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .rank-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: width .5s ease;
+        }
+
+        .rank-score {
+            font-size: 10px;
+            width: 38px;
+            text-align: right;
+            font-family: 'IBM Plex Mono';
+            color: var(--ink-faint);
+        }
+
+        .rank-row.top .rank-name {
+            color: var(--ink);
+        }
+
+        .rank-row.top .rank-score {
+            color: var(--teal);
+        }
+
+        .result-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 7, 9, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-overlay.show {
+            display: flex;
+        }
+
+        .result-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 44px;
+            text-align: center;
+            max-width: 380px;
+        }
+
+        .result-tick {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--teal-dim);
+            border: 2px solid var(--teal);
+            color: var(--teal);
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .result-card h2 {
+            font-family: 'Fraunces', serif;
+            font-weight: 500;
+            font-size: 21px;
+            margin-bottom: 6px;
+        }
+
+        .result-card p {
+            color: var(--ink-dim);
+            font-size: 12.5px;
+            margin-bottom: 22px;
+        }
+
+        .result-amt {
+            font-family: 'IBM Plex Mono';
+            font-size: 28px;
+            color: var(--teal);
+            margin-bottom: 22px;
+        }
+
+        /* ---------- HISTORY ---------- */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hist-row {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hist-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hist-left img {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .hist-name {
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+
+        .hist-meta {
+            font-size: 10.5px;
+            color: var(--ink-faint);
+            font-family: 'IBM Plex Mono';
+        }
+
+        .hist-amt {
+            font-family: 'IBM Plex Mono';
+            font-size: 13.5px;
+            color: var(--red);
+        }
+
+        .hist-badge {
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 100px;
+            border: 1px solid var(--teal);
+            color: var(--teal);
+            font-family: 'IBM Plex Mono';
+            margin-left: 8px;
+        }
+
+        .empty-note {
+            color: var(--ink-faint);
+            font-size: 13px;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--ink-faint);
+            font-size: 10.5px;
+            font-family: 'IBM Plex Mono';
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-mark">🖐️</div>
+            <div class="brand-name">PalmPay</div>
+            <div class="brand-tag mono">palm-native settlement</div>
+        </div>
+        <div class="nav-pill">
+            <button data-go="home" class="on">Overview</button>
+            <button data-go="register">Register</button>
+            <button data-go="pay">Pay</button>
+            <button data-go="history">Ledger</button>
+        </div>
+    </div>
+
+    <!-- ===================== HOME ===================== -->
+    <div class="screen active" id="screen-home">
+        <div class="hero">
+            <div class="eyebrow"><span class="dot"></span>LIVE INTERACTIVE PROTOTYPE</div>
+            <h1 class="hero-title">Your palm is the <em>account number.</em></h1>
+            <p class="hero-sub">Scan to pay — no phone, no app lag, no card to steal. A real-time biometric match
+                confirms it's really you, and a network-level fraud check confirms the transaction itself behaves like a
+                real one, before a rupee moves.</p>
+            <div class="hero-cta">
+                <button class="btn btn-primary" data-go="register">Register a palm →</button>
+                <button class="btn btn-ghost" data-go="pay">Skip to Pay demo</button>
+            </div>
+        </div>
+
+        <div class="arch">
+            <div class="arch-card cnn">
+                <div class="arch-num mono">LAYER 01</div>
+                <h3>🧬 CNN — Identity</h3>
+                <p>Crops your palm out of the live frame, builds a structural template from its crease/vein pattern, and
+                    matches it against the enrolled template — in real time.</p>
+            </div>
+            <div class="arch-card live">
+                <div class="arch-num mono">LAYER 02</div>
+                <h3>🫥 Liveness</h3>
+                <p>Compares several frames captured in quick succession to confirm a live hand is in front of the
+                    sensor, not a static photo.</p>
+            </div>
+            <div class="arch-card gnn">
+                <div class="arch-num mono">LAYER 03</div>
+                <h3>🕸️ GNN — Behaviour</h3>
+                <p>Looks across accounts and transactions as a graph — the way banks trace laundering rings — to flag
+                    activity that behaves like fraud, even from a verified palm.</p>
+            </div>
+            <div class="arch-card wallet">
+                <div class="arch-num mono">FALLBACK</div>
+                <h3>🪙 Mini-Wallet</h3>
+                <p>If a bank won't yet grant direct-debit access, small daily spends run on a pre-loaded wallet balance.
+                    Savings never leave the real bank account.</p>
+            </div>
+        </div>
+
+        <div class="users-strip">
+            <h3>Registered palms (demo)</h3>
+            <div class="user-cards" id="home-users">
+                <div class="empty-note" style="padding:20px 0;">No one registered yet — head to Register.</div>
+            </div>
+        </div>
+        <footer>SIMULATION ONLY · NO REAL BANKING DATA IS TRANSMITTED · BUILT FOR PITCH DEMO</footer>
+    </div>
+
+    <!-- ===================== REGISTER ===================== -->
+    <div class="screen" id="screen-register">
+        <div class="stage">
+            <div class="stage-head">
+                <h2>Enroll a palm</h2>
+                <p>Up to 3 demo identities. Capture runs a short burst scan, isolates the hand from the background, and
+                    builds a structural template from several frames.</p>
+            </div>
+            <div class="reg-grid">
+                <div class="scan-box">
+                    <div class="cam-wrap" id="camWrap">
+                        <div class="cam-placeholder" id="camPlaceholder">
+                            <div class="hand-icon">🖐️</div>
+                            <div>Camera preview will appear here.<br>Click "Start camera" then hold your palm ~20cm from
+                                the lens, fingers spread.</div>
+                        </div>
+                        <video id="video" autoplay playsinline></video>
+                        <canvas class="overlay" id="overlay"></canvas>
+                    </div>
+                    <div class="scan-actions">
+                        <button class="btn btn-ghost" id="btnStartCam" style="flex:1">Start camera</button>
+                        <button class="btn btn-primary" id="btnCapture" style="flex:1" disabled>Capture palm</button>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="regProgress"></div>
+                    </div>
+                    <div class="status-line mono" id="regStatus"></div>
+                </div>
+
+                <div class="reg-form">
+                    <div class="field">
+                        <label>Full name</label>
+                        <input type="text" id="regName" placeholder="e.g. Ananya Rao">
+                    </div>
+                    <div class="field">
+                        <label>Opening bank balance (₹)</label>
+                        <input type="number" id="regBank" placeholder="45000" value="45000">
+                    </div>
+                    <div class="field">
+                        <label>Top up mini-wallet with (₹)</label>
+                        <input type="number" id="regWallet" placeholder="2000" value="2000">
+                    </div>
+                    <div class="field">
+                        <label>Captured palm slots</label>
+                        <div class="slot-row" id="slotRow">
+                            <div class="slot empty">empty</div>
+                            <div class="slot empty">empty</div>
+                            <div class="slot empty">empty</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="btnCreateAccount" disabled>Create linked account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== PAY ===================== -->
+    <div class="screen" id="screen-pay">
+        <div class="stage" style="padding-bottom:0;">
+            <div class="stage-head">
+                <h2>Scan &amp; pay</h2>
+                <p>No need to pick who you are — the system auto-identifies from the live scan against every enrolled
+                    palm, and only pays out on a confident, clearly separated top match.</p>
+            </div>
+        </div>
+        <div class="pay-wrap">
+            <div class="pay-left">
+                <h3>Palm scan</h3>
+                <div class="scan-frame" id="payScanFrame">
+                    <div class="corner tl"></div>
+                    <div class="corner tr"></div>
+                    <div class="corner bl"></div>
+                    <div class="corner br"></div>
+                    <div class="scanline" id="payScanline"></div>
+                    <div class="crop-box" id="cropBox"><span class="crop-label mono" id="cropLabel">hand region</span>
+                    </div>
+                    <div class="cam-placeholder" id="payPlaceholder">
+                        <div class="hand-icon">🖐️</div>
+                        <div>Enter an amount, then press "Scan palm." Your camera captures a short burst and is matched
+                            live against every enrolled palm.</div>
+                    </div>
+                    <video id="payVideo" autoplay playsinline style="display:none;"></video>
+                </div>
+                <div class="picker" id="payPicker"></div>
+                <div class="picker-note">Optional: mark who you expect this to be, just to compare against the
+                    auto-identify result. Leave unmarked to fully auto-identify.</div>
+                <div class="status-line mono" id="payCamStatus"></div>
+                <button class="btn btn-primary" id="btnScanPay" style="margin-top:10px;" disabled>Scan palm to
+                    pay</button>
+            </div>
+
+            <div class="pay-right">
+                <div class="amount-card">
+                    <h3>Amount</h3>
+                    <div class="amount-display" id="amountDisplay"><span>₹</span>0</div>
+                    <div class="keypad" id="keypad"></div>
+                    <div class="merchant-row"><span>Merchant</span><span class="mono">Blue Tokai Coffee, Sector
+                            18</span></div>
+                </div>
+
+                <div class="mode-toggle">
+                    <h3>Settlement route</h3>
+                    <div class="mode-switch">
+                        <button class="sel" data-mode="bank" id="modeBank">Direct bank debit</button>
+                        <button data-mode="wallet" id="modeWallet">Mini-wallet balance</button>
+                    </div>
+                    <div class="mode-note" id="modeNote">Bank hasn't yet whitelisted us for instant pulls in this demo
+                        bank, so this route simulates a real-time debit request to the account on file.</div>
+                </div>
+
+                <div class="verify-card">
+                    <h3>Verification pipeline</h3>
+                    <div id="vsteps">
+                        <div class="vstep" data-step="liveness">
+                            <div class="vicon">1</div>
+                            <div class="vtext"><b>Liveness check</b><span>waiting for scan…</span></div>
+                        </div>
+                        <div class="vstep" data-step="cnn">
+                            <div class="vicon">2</div>
+                            <div class="vtext"><b>CNN palm/vein match</b><span>waiting for liveness…</span>
+                                <div class="rank-panel" id="rankPanel"></div>
+                            </div>
+                        </div>
+                        <div class="vstep" data-step="gnn">
+                            <div class="vicon">3</div>
+                            <div class="vtext"><b>GNN network fraud check</b><span>waiting for identity confirm…</span>
+                                <canvas class="gnn-canvas" id="gnnCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="vstep" data-step="debit">
+                            <div class="vicon">4</div>
+                            <div class="vtext"><b>Debit &amp; settle</b><span>waiting for fraud clearance…</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== HISTORY ===================== -->
+    <div class="screen" id="screen-history">
+        <div class="stage">
+            <div class="stage-head">
+                <h2>Transaction ledger</h2>
+                <p>Every simulated payment across all registered identities, most recent first.</p>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-note">No transactions yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-card">
+            <div class="result-tick" id="resultTick">✓</div>
+            <h2 id="resultTitle">Payment successful</h2>
+            <p id="resultSub">Verified by CNN palm-match + GNN fraud graph.</p>
+            <div class="result-amt" id="resultAmt">₹0</div>
+            <button class="btn btn-primary" style="width:100%" onclick="closeResult()">Done</button>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================================
+           STATE
+           ============================================================ */
+        // API base URL — update if backend is on a different port
+        const API_BASE = 'http://localhost:3001/api';
+
+        let users = [];           // {id,name,thumbnail,bankBalance,walletBalance} — loaded from /api/register responses
+        let currentCapture = null; // base64 data-URL of captured palm thumbnail
+        let stream = null;
+        let payStream = null;
+        let expectedPayUser = null; // optional "who I expect this to be" tag, for comparison only
+        let amount = 0;
+        let mode = 'bank';
+
+        /* ─── BACKEND HEALTH & OFFLINE BANNER ────────────────────────────── */
+        let backendOnline = false;
+
+        async function checkBackend() {
+            try {
+                const r = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+                backendOnline = r.ok;
+                if (backendOnline) {
+                    await fetchUsers();
+                }
+            } catch {
+                backendOnline = false;
+            }
+            setOfflineBanner(!backendOnline);
+            return backendOnline;
+        }
+
+        async function fetchUsers() {
+            try {
+                const resp = await fetch(`${API_BASE}/users`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    users = data.map(u => ({
+                        id: u.id,
+                        name: u.name,
+                        img: u.thumbnail,
+                        bank: u.bankBalance,
+                        wallet: u.walletBalance,
+                    }));
+                    renderHomeUsers();
+                    updateSlotDisplay();
+                }
+            } catch (e) {
+                console.warn('Could not fetch existing users:', e);
+            }
+        }
+
+        function setOfflineBanner(show) {
+            let banner = document.getElementById('offlineBanner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'offlineBanner';
+                Object.assign(banner.style, {
+                    position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+                    background: '#E2604F', color: '#fff', padding: '10px 22px',
+                    borderRadius: '100px', fontSize: '12.5px', fontWeight: '600',
+                    zIndex: '9999', display: 'none', gap: '8px', alignItems: 'center',
+                    boxShadow: '0 8px 24px -4px rgba(226,96,79,0.6)',
+                });
+                banner.innerHTML = '⚠ Backend unreachable — start the server in /server and refresh';
+                document.body.appendChild(banner);
+            }
+            banner.style.display = show ? 'flex' : 'none';
+        }
+
+        checkBackend();
+
+        /* ============================================================
+           NAV
+           ============================================================ */
+        document.querySelectorAll('[data-go]').forEach(el => {
+            el.addEventListener('click', () => goTo(el.dataset.go));
+        });
+        function goTo(name) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-' + name).classList.add('active');
+            document.querySelectorAll('.nav-pill button').forEach(b => b.classList.toggle('on', b.dataset.go === name));
+            if (name === 'pay') renderPayPicker();
+            if (name === 'history') renderHistory();
+            if (name === 'home') renderHomeUsers();
+        }
+
+        /* ============================================================
+           CAMERA BURST CAPTURE (browser-side)
+           Captures N JPEG blobs from the live video stream.
+           The actual biometric matching is now done server-side by
+           the MobileNetV2 embedding pipeline in /server/lib/embedder.js
+           This replaces the old HOG-descriptor matching.
+           ============================================================ */
+
+        function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        /**
+         * Capture a burst of JPEG frames from a video element.
+         * Returns { blobs: Blob[], liveness: number, handFound: bool, thumbDataUrl: string }
+         * Uses the same skin-tone heuristic for hand detection + visual feedback only
+         * (not for matching — that's the server's job).
+         */
+        async function burstCapture(sourceEl, mirrored, frames, onFrame) {
+            const blobs = [];
+            let lastGray = null, motionSum = 0, motionN = 0;
+            let bestThumb = null, anyHandFound = false;
+
+            for (let f = 0; f < frames; f++) {
+                // Draw frame to an offscreen canvas
+                const SW = 640, SH = 480;
+                const sc = document.createElement('canvas');
+                sc.width = SW; sc.height = SH;
+                const sctx = sc.getContext('2d');
+                if (mirrored) { sctx.translate(SW, 0); sctx.scale(-1, 1); }
+                sctx.drawImage(sourceEl, 0, 0, SW, SH);
+
+                // Quick skin-detection for visual feedback (not used in matching)
+                const smallSc = document.createElement('canvas');
+                smallSc.width = 96; smallSc.height = 72;
+                const ssc = smallSc.getContext('2d');
+                ssc.drawImage(sc, 0, 0, 96, 72);
+                const px = ssc.getImageData(0, 0, 96, 72).data;
+                let count = 0, minX = 96, minY = 72, maxX = 0, maxY = 0;
+                for (let y = 0; y < 72; y++) {
+                    for (let x = 0; x < 96; x++) {
+                        const i = (y * 96 + x) * 4;
+                        const r = px[i], g = px[i+1], b = px[i+2];
+                        const Y = 0.299*r + 0.587*g + 0.114*b;
+                        const Cb = 128 - 0.168736*r - 0.331264*g + 0.5*b;
+                        const Cr = 128 + 0.5*r - 0.418688*g - 0.081312*b;
+                        if (Y > 60 && Cb > 77 && Cb < 135 && Cr > 133 && Cr < 180) {
+                            count++;
+                            if (x < minX) minX = x; if (x > maxX) maxX = x;
+                            if (y < minY) minY = y; if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+                const handFound = count > (96 * 72 * 0.04);
+                const box = handFound
+                    ? { x: Math.max(0, minX-4)/96, y: Math.max(0, minY-4)/72,
+                        w: Math.min(96, maxX+4)/96 - Math.max(0, minX-4)/96,
+                        h: Math.min(72, maxY+4)/72 - Math.max(0, minY-4)/72 }
+                    : { x: 0.2, y: 0.1, w: 0.6, h: 0.8 };
+
+                if (handFound && !bestThumb) bestThumb = sc.toDataURL('image/jpeg', 0.7);
+                if (handFound) anyHandFound = true;
+
+                // Compute simple motion score for liveness estimate
+                const grayData = new Float32Array(96 * 72);
+                for (let i = 0; i < grayData.length; i++) {
+                    grayData[i] = 0.299*px[i*4] + 0.587*px[i*4+1] + 0.114*px[i*4+2];
+                }
+                if (lastGray) {
+                    let d = 0;
+                    for (let i = 0; i < grayData.length; i++) d += Math.abs(grayData[i] - lastGray[i]);
+                    motionSum += d / grayData.length; motionN++;
+                }
+                lastGray = grayData;
+
+                // Convert full-res frame to JPEG blob for server upload
+                const blob = await new Promise(resolve => sc.toBlob(resolve, 'image/jpeg', 0.85));
+                blobs.push(blob);
+
+                if (onFrame) onFrame(f, frames, box, handFound);
+                await wait(150);
+            }
+
+            const livenessRaw = motionN ? motionSum / motionN : 0;
+            const livenessScore = Math.max(4, Math.min(99, 18 + livenessRaw * 3.2));
+
+            return {
+                blobs,
+                liveness: livenessScore,
+                handFound: anyHandFound,
+                thumbDataUrl: bestThumb,
+            };
+        }
+
+        /* ============================================================
+           REGISTER
+           ============================================================ */
+        const video = document.getElementById('video');
+        const overlay = document.getElementById('overlay');
+        const camPlaceholder = document.getElementById('camPlaceholder');
+        const regStatus = document.getElementById('regStatus');
+        const regProgress = document.getElementById('regProgress');
+
+        document.getElementById('btnStartCam').addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                camPlaceholder.style.display = 'none';
+                document.getElementById('btnCapture').disabled = false;
+                regStatus.textContent = '● camera live — hold palm ~20cm from lens, fingers spread';
+            } catch (e) {
+                regStatus.textContent = '⚠ camera unavailable — capture will use a generated demo pattern';
+                camPlaceholder.innerHTML = '<div class="hand-icon">🖐️</div><div>No camera access. Capture will use a simulated palm pattern instead.</div>';
+                document.getElementById('btnCapture').disabled = false;
+            }
+        });
+
+        document.getElementById('btnCapture').addEventListener('click', async () => {
+            const liveVideo = (video.style.display === 'block' && video.readyState >= 2) ? video : null;
+            document.getElementById('btnCapture').disabled = true;
+            drawScanChrome(overlay, true);
+            if (liveVideo) {
+                regStatus.textContent = 'scanning… hold steady (0/7 frames)';
+                const result = await burstCapture(liveVideo, true, 7, (f, total, box, found) => {
+                    regProgress.style.width = `${Math.round((f + 1) / total * 100)}%`;
+                    regStatus.textContent = `scanning… ${found ? 'hand detected' : 'show your palm to the lens'} (${f + 1}/${total} frames)`;
+                });
+                drawScanChrome(overlay, false);
+                if (!result.handFound) {
+                    regStatus.textContent = '⚠ no palm clearly detected — move closer and try again';
+                    regProgress.style.width = '0%';
+                    document.getElementById('btnCapture').disabled = false;
+                    return;
+                }
+                // Store blobs + thumbnail — will be uploaded on "Create account"
+                currentCapture = { blobs: result.blobs, thumb: result.thumbDataUrl };
+                regStatus.textContent = `✓ ${result.blobs.length} frames captured · liveness ${result.liveness.toFixed(0)}% · ready to enroll`;
+            } else {
+                await wait(900);
+                drawScanChrome(overlay, false);
+                // No camera: generate a placeholder SVG so the slot shows something
+                currentCapture = { blobs: [], thumb: fallbackPalmSvg(), fallback: true };
+                regStatus.textContent = '✓ simulated palm (no camera) — embedding will be randomised on server';
+            }
+            regProgress.style.width = '100%';
+            updateSlotPreview();
+            checkCreateEnabled();
+            document.getElementById('btnCapture').disabled = false;
+        });
+
+        function drawScanChrome(canvasEl, active) {
+            const wrap = canvasEl.parentElement;
+            const w = wrap.clientWidth, h = wrap.clientHeight;
+            canvasEl.width = w; canvasEl.height = h;
+            const ctx = canvasEl.getContext('2d');
+            ctx.clearRect(0, 0, w, h);
+            if (!active) { canvasEl.dataset.stop = '1'; return; }
+            canvasEl.dataset.stop = '0';
+            let frame = 0;
+            function draw() {
+                if (canvasEl.dataset.stop === '1') { ctx.clearRect(0, 0, w, h); return; }
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = 'rgba(65,205,176,0.3)'; ctx.lineWidth = 1;
+                for (let i = 0; i < 6; i++) {
+                    ctx.beginPath();
+                    const yOff = (h / 6) * i + Math.sin(frame / 8 + i) * 5;
+                    ctx.moveTo(0, yOff);
+                    ctx.bezierCurveTo(w * 0.3, yOff + 16 * Math.sin(frame / 10 + i), w * 0.7, yOff - 16 * Math.cos(frame / 9 + i), w, yOff);
+                    ctx.stroke();
+                }
+                ctx.strokeStyle = 'rgba(206,149,99,0.75)'; ctx.lineWidth = 2;
+                ctx.strokeRect(w * 0.15, h * 0.1, w * 0.7, h * 0.8);
+                frame++;
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function updateSlotDisplay() {
+            const slots = document.querySelectorAll('#slotRow .slot');
+            slots.forEach((s, i) => {
+                if (i < users.length) {
+                    const u = users[i];
+                    s.classList.remove('empty');
+                    s.classList.add('filled');
+                    s.innerHTML = `
+                        <img src="${u.img}">
+                        <div class="tag mono">${u.name.split(' ')[0]}</div>
+                        <button class="slot-del-btn" title="Delete ${u.name}" onclick="event.stopPropagation(); deleteUserById('${u.id}')">✕</button>
+                    `;
+                } else if (i === users.length && currentCapture) {
+                    s.classList.remove('empty');
+                    s.classList.add('filled');
+                    const imgSrc = currentCapture?.thumb ?? currentCapture;
+                    s.innerHTML = `<img src="${imgSrc}"><div class="tag mono">pending</div>`;
+                } else {
+                    s.classList.remove('filled');
+                    s.classList.add('empty');
+                    s.innerHTML = 'empty';
+                }
+            });
+
+            const captureBtn = document.getElementById('btnCapture');
+            if (users.length >= 3) {
+                captureBtn.disabled = true;
+                regStatus.textContent = 'Demo limit of 3 palms reached. Delete one to enroll another.';
+            } else {
+                captureBtn.disabled = false;
+            }
+            checkCreateEnabled();
+        }
+
+        function updateSlotPreview() {
+            updateSlotDisplay();
+        }
+
+        function checkCreateEnabled() {
+            document.getElementById('btnCreateAccount').disabled = !(currentCapture && document.getElementById('regName').value.trim() && users.length < 3);
+        }
+        document.getElementById('regName').addEventListener('input', checkCreateEnabled);
+
+        async function deleteUserById(id) {
+            const u = users.find(user => user.id === id);
+            const name = u ? u.name : 'this user';
+            if (!confirm(`Delete ${name}'s palm profile? You can then register a new person.`)) {
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Failed to delete');
+
+                users = users.filter(user => user.id !== id);
+                if (expectedPayUser === id) expectedPayUser = null;
+
+                regStatus.textContent = `✓ Deleted ${data.name || name}. Slot freed!`;
+                renderHomeUsers();
+                updateSlotDisplay();
+                renderPayPicker();
+                updateScanButton();
+            } catch (err) {
+                alert(`Error deleting user: ${err.message}`);
+            }
+        }
+
+        document.getElementById('btnCreateAccount').addEventListener('click', async () => {
+            const name = document.getElementById('regName').value.trim();
+            const bank = parseFloat(document.getElementById('regBank').value) || 0;
+            const wallet = parseFloat(document.getElementById('regWallet').value) || 0;
+
+            if (!currentCapture || !currentCapture.blobs) {
+                regStatus.textContent = '⚠ No palm captured — click "Capture palm" first';
+                return;
+            }
+
+            document.getElementById('btnCreateAccount').disabled = true;
+            regStatus.textContent = '↑ uploading to server & building embedding…';
+
+            try {
+                const fd = new FormData();
+                fd.append('name', name);
+                fd.append('bankBalance', bank);
+                fd.append('walletBalance', wallet);
+                currentCapture.blobs.forEach((blob, i) => fd.append('frames', blob, `frame${i}.jpg`));
+
+                const resp = await fetch(`${API_BASE}/register`, { method: 'POST', body: fd });
+                const data = await resp.json();
+
+                if (!resp.ok) throw new Error(data.error || 'Registration failed');
+
+                // Add to local users list using server-returned data
+                users.push({
+                    id: data.id,
+                    name: data.name,
+                    img: data.thumbnail,
+                    bank: data.bankBalance,
+                    wallet: data.walletBalance,
+                });
+
+                currentCapture = null;
+                document.getElementById('regName').value = '';
+                document.getElementById('regBank').value = '45000';
+                document.getElementById('regWallet').value = '2000';
+                regProgress.style.width = '0%';
+                regStatus.textContent = `✓ "${name}" enrolled (server) — bank ₹${bank.toLocaleString('en-IN')}, wallet ₹${wallet.toLocaleString('en-IN')}`;
+                
+                renderHomeUsers();
+                updateSlotDisplay();
+                renderPayPicker();
+
+            } catch (err) {
+                regStatus.textContent = `⚠ ${err.message}`;
+                setOfflineBanner(true);
+                document.getElementById('btnCreateAccount').disabled = false;
+            }
+        });
+
+        function fallbackPalmSvg() {
+            const hue = Math.floor(Math.random() * 40) + 15;
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><rect width='160' height='160' fill='hsl(${hue},30%,14%)'/><g stroke='hsl(165,60%,55%)' stroke-width='2' fill='none' opacity='0.8'>
+  <path d='M30 140 Q40 60 80 40 Q120 60 130 140'/>
+  <path d='M50 150 Q55 80 80 50'/>
+  <path d='M110 150 Q105 80 80 50'/>
+  <path d='M65 20 L70 60'/><path d='M80 15 L80 55'/><path d='M95 20 L90 60'/>
+  </g></svg>`;
+            return 'data:image/svg+xml;base64,' + btoa(svg);
+        }
+
+        /* ============================================================
+           HOME
+           ============================================================ */
+        function renderHomeUsers() {
+            const el = document.getElementById('home-users');
+            if (!users.length) { el.innerHTML = '<div class="empty-note" style="padding:20px 0;">No one registered yet — head to Register.</div>'; return; }
+            el.innerHTML = users.map(u => `
+    <div class="user-card">
+      <img src="${u.img}">
+      <div class="uinfo"><b>${u.name}</b><span class="ubal">bank ₹${u.bank.toLocaleString('en-IN')} · wallet ₹${u.wallet.toLocaleString('en-IN')}</span></div>
+      <button class="btn-del-user" title="Delete ${u.name}" onclick="deleteUserById('${u.id}')">🗑</button>
+    </div>`).join('');
+        }
+
+        // Sync local users' balances from server after a payment
+        function syncUserBalance(updatedUser) {
+            const local = users.find(u => u.id === updatedUser.id);
+            if (local) {
+                local.bank = updatedUser.bankBalance;
+                local.wallet = updatedUser.walletBalance;
+            }
+        }
+
+        /* ============================================================
+           PAY SCREEN
+           ============================================================ */
+        function renderPayPicker() {
+            const el = document.getElementById('payPicker');
+            if (!users.length) { el.innerHTML = '<span style="color:var(--ink-faint);font-size:12px;">Register a palm first.</span>'; return; }
+            el.innerHTML = users.map(u => `<button data-id="${u.id}" class="${expectedPayUser === u.id ? 'sel' : ''}"><img src="${u.img}">${u.name.split(' ')[0]}</button>`).join('');
+            el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+                expectedPayUser = (expectedPayUser === b.dataset.id) ? null : b.dataset.id;
+                renderPayPicker();
+            }));
+            updateScanButton();
+        }
+        function updateScanButton() {
+            document.getElementById('btnScanPay').disabled = !(users.length && amount > 0);
+        }
+
+        const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '00'];
+        const keypadEl = document.getElementById('keypad');
+        keys.forEach(k => {
+            const b = document.createElement('button'); b.textContent = k;
+            b.addEventListener('click', () => {
+                let s = amount.toString();
+                if (s === '0') s = '';
+                if (k === '⌫') s = s.slice(0, -1);
+                else s += k;
+                amount = parseInt(s || '0', 10);
+                document.getElementById('amountDisplay').innerHTML = `<span>₹</span>${amount.toLocaleString('en-IN')}`;
+                updateScanButton();
+            });
+            keypadEl.appendChild(b);
+        });
+
+        document.getElementById('modeBank').addEventListener('click', () => setMode('bank'));
+        document.getElementById('modeWallet').addEventListener('click', () => setMode('wallet'));
+        function setMode(m) {
+            mode = m;
+            document.getElementById('modeBank').classList.toggle('sel', m === 'bank');
+            document.getElementById('modeWallet').classList.toggle('sel', m === 'wallet');
+            document.getElementById('modeNote').textContent = m === 'bank'
+                ? "Simulates a real-time debit pull straight from the linked bank account — the long-term goal once banks grant direct access."
+                : "Uses only the pre-loaded mini-wallet balance. Savings in the real bank are never touched — this is the fallback that ships on day one.";
+        }
+
+        const payScanline = document.getElementById('payScanline');
+        const payVideo = document.getElementById('payVideo');
+        const cropBox = document.getElementById('cropBox');
+        document.getElementById('btnScanPay').addEventListener('click', startPayFlow);
+
+        async function ensurePayCamera() {
+            if (payStream) return true;
+            try {
+                payStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                payVideo.srcObject = payStream;
+                payVideo.style.display = 'block';
+                document.getElementById('payCamStatus').textContent = '● live camera connected';
+                return true;
+            } catch (e) {
+                document.getElementById('payCamStatus').textContent = '⚠ no camera access — backend will need frames';
+                return false;
+            }
+        }
+        function positionCropBox(box) {
+            const frame = document.getElementById('payScanFrame');
+            const r = frame.getBoundingClientRect();
+            const left = (1 - (box.x + box.w)) * r.width;
+            const top = box.y * r.height;
+            cropBox.style.left = left + 'px';
+            cropBox.style.top = top + 'px';
+            cropBox.style.width = (box.w * r.width) + 'px';
+            cropBox.style.height = (box.h * r.height) + 'px';
+            cropBox.classList.add('show');
+        }
+
+        async function startPayFlow() {
+            if (amount <= 0 || !users.length) return;
+            document.getElementById('btnScanPay').disabled = true;
+            resetSteps();
+            document.getElementById('rankPanel').innerHTML = '';
+            clearExplanation();
+
+            const camOk = await ensurePayCamera();
+            document.getElementById('payPlaceholder').style.display = 'none';
+            payScanline.classList.add('active');
+
+            // ── Step 1: Liveness — capture burst ─────────────────────────────
+            let liveResult;
+            setStep('liveness', 'active');
+            document.querySelector('[data-step="liveness"] span').textContent = 'capturing burst frames…';
+
+            if (camOk && payVideo.readyState >= 2) {
+                liveResult = await burstCapture(payVideo, true, 6, (f, total, box, found) => {
+                    document.querySelector('[data-step="liveness"] span').textContent =
+                        `${found ? 'hand detected' : 'show your palm'} — frame ${f + 1}/${total}`;
+                    if (found) positionCropBox(box);
+                });
+            } else {
+                await wait(1000);
+                liveResult = { blobs: [], liveness: 55 + Math.random() * 20, handFound: false };
+            }
+            cropBox.classList.remove('show');
+            payScanline.classList.remove('active');
+
+            if (camOk && !liveResult.handFound) {
+                setStep('liveness', 'fail', 'no palm clearly detected in frame — reposition and rescan');
+                setStep('cnn', 'fail', 'skipped'); setStep('gnn', 'fail', 'skipped');
+                setStep('debit', 'fail', 'payment blocked — no funds moved');
+                document.getElementById('btnScanPay').disabled = false;
+                return;
+            }
+            setStep('liveness', 'done', `live hand confirmed — ${liveResult.liveness.toFixed(0)}% liveness score`);
+
+            // ── Step 2: CNN match — POST frames to backend ───────────────────
+            setStep('cnn', 'active');
+            document.querySelector('[data-step="cnn"] span').textContent = 'uploading frames to embedding pipeline…';
+
+            let payResponse;
+            try {
+                const fd = new FormData();
+                fd.append('amount', amount);
+                fd.append('mode', mode);
+                if (expectedPayUser) fd.append('expectedUserId', expectedPayUser);
+
+                if (liveResult.blobs.length > 0) {
+                    liveResult.blobs.forEach((blob, i) => fd.append('frames', blob, `frame${i}.jpg`));
+                } else {
+                    // No camera — send a blank placeholder so the server has something
+                    const blankCanvas = document.createElement('canvas');
+                    blankCanvas.width = 224; blankCanvas.height = 224;
+                    const blankBlob = await new Promise(r => blankCanvas.toBlob(r, 'image/jpeg', 0.5));
+                    fd.append('frames', blankBlob, 'placeholder.jpg');
+                }
+
+                const resp = await fetch(`${API_BASE}/pay`, {
+                    method: 'POST',
+                    body: fd,
+                    signal: AbortSignal.timeout(30000), // 30s timeout for embedding
+                });
+                payResponse = await resp.json();
+
+            } catch (err) {
+                // Backend unreachable
+                setStep('cnn', 'fail', 'backend unreachable — start the server and try again');
+                setStep('gnn', 'fail', 'skipped'); setStep('debit', 'fail', 'payment blocked');
+                setOfflineBanner(true);
+                document.getElementById('btnScanPay').disabled = false;
+                return;
+            }
+
+            // ── Parse API response ────────────────────────────────────────────
+            if (!payResponse.accepted) {
+                // Rejected by matcher or fraud check
+                const reason = payResponse.reason || 'Match rejected by server';
+                const explanation = payResponse.explanation || '';
+
+                // Show real biometric match percentages
+                if (payResponse.ranked && payResponse.ranked.length) {
+                    renderRankPanel(payResponse.ranked.map(r => {
+                        const localUser = users.find(u => u.id === r.id) || { name: r.name };
+                        return { user: localUser, score: r.score };
+                    }));
+                } else if (payResponse.score !== undefined) {
+                    renderRankPanel(users.map((u, i) => ({
+                        user: u,
+                        score: i === 0 ? payResponse.score : 0,
+                    })));
+                }
+
+                setStep('cnn', 'fail', reason);
+                if (explanation) showExplanation(explanation);
+                setStep('gnn', 'fail', 'skipped — identity not confirmed or fraud flag');
+                setStep('debit', 'fail', 'payment blocked — no funds moved');
+                document.getElementById('btnScanPay').disabled = false;
+                return;
+            }
+
+            // Accepted — render rank panel with server scores
+            if (payResponse.ranked && payResponse.ranked.length) {
+                renderRankPanel(payResponse.ranked.map(r => {
+                    const localUser = users.find(u => u.id === r.id) || { name: r.name };
+                    return { user: localUser, score: r.score };
+                }));
+            } else {
+                renderRankPanel(users.map(u => ({
+                    user: u,
+                    score: u.id === payResponse.user.id ? payResponse.score : Math.max(1, payResponse.score - 10),
+                })));
+            }
+            await wait(400);
+
+            let cnnMsg = `identified as ${payResponse.user.name.split(' ')[0]} — ${payResponse.score.toFixed(1)}% confidence (margin ${payResponse.margin.toFixed(1)}%)`;
+            if (expectedPayUser && expectedPayUser !== payResponse.user.id) {
+                const exp = users.find(u => u.id === expectedPayUser);
+                cnnMsg += ` (differs from expected "${exp ? exp.name.split(' ')[0] : '?'}")`;
+            }
+            setStep('cnn', 'done', cnnMsg);
+
+            // Show Groq explanation under the CNN step
+            if (payResponse.explanation) showExplanation(payResponse.explanation);
+
+            // ── Step 3: GNN / fraud graph ─────────────────────────────────────
+            setStep('gnn', 'active');
+            drawGnnGraph();
+            await wait(1300);
+            setStep('gnn', 'done', 'behaviour graph check passed — no velocity or spike flags');
+
+            // ── Step 4: Debit settled ─────────────────────────────────────────
+            setStep('debit', 'active');
+            await wait(600);
+            setStep('debit', 'done', `₹${amount.toLocaleString('en-IN')} settled via ${mode === 'bank' ? 'direct bank debit' : 'mini-wallet'}`);
+
+            // Sync updated balances from server
+            syncUserBalance(payResponse.user);
+            showResult(payResponse.user, amount);
+            renderHomeUsers();
+            document.getElementById('btnScanPay').disabled = false;
+        }
+
+        /* ─── Groq explanation display ────────────────────────────────────── */
+        function showExplanation(text) {
+            let el = document.getElementById('groqExplanation');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'groqExplanation';
+                Object.assign(el.style, {
+                    marginTop: '8px',
+                    padding: '8px 10px',
+                    background: 'rgba(206,149,99,0.08)',
+                    border: '1px solid rgba(206,149,99,0.25)',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    lineHeight: '1.55',
+                    color: 'var(--ink-dim)',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                });
+                const cnnVtext = document.querySelector('[data-step="cnn"] .vtext');
+                cnnVtext.appendChild(el);
+            }
+            el.textContent = '🤖 ' + text;
+            el.style.display = 'block';
+        }
+        function clearExplanation() {
+            const el = document.getElementById('groqExplanation');
+            if (el) el.style.display = 'none';
+        }
+
+        function renderRankPanel(ranked) {
+            const el = document.getElementById('rankPanel');
+            el.innerHTML = ranked.map((r, i) => `
+    <div class="rank-row ${i === 0 ? 'top' : ''}">
+      <div class="rank-name">${r.user.name.split(' ')[0]}</div>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:0%; background:${i === 0 ? 'var(--teal)' : 'var(--line)'}"></div></div>
+      <div class="rank-score">${r.score.toFixed(1)}%</div>
+    </div>`).join('');
+            requestAnimationFrame(() => {
+                el.querySelectorAll('.rank-bar-fill').forEach((bar, i) => { bar.style.width = ranked[i].score + '%'; });
+            });
+        }
+
+        function resetSteps() {
+            document.querySelectorAll('.vstep').forEach(v => {
+                v.classList.remove('done', 'active', 'fail');
+                v.querySelector('.vicon').textContent = { liveness: '1', cnn: '2', gnn: '3', debit: '4' }[v.dataset.step];
+            });
+            document.querySelector('[data-step="liveness"] span').textContent = 'waiting for scan…';
+            document.querySelector('[data-step="cnn"] span').textContent = 'waiting for liveness…';
+            document.querySelector('[data-step="gnn"] span').textContent = 'waiting for identity confirm…';
+            document.querySelector('[data-step="debit"] span').textContent = 'waiting for fraud clearance…';
+        }
+        function setStep(step, state, text) {
+            const el = document.querySelector(`[data-step="${step}"]`);
+            el.classList.remove('done', 'active', 'fail');
+            el.classList.add(state);
+            const icon = el.querySelector('.vicon');
+            icon.textContent = state === 'done' ? '✓' : state === 'fail' ? '✕' : '⟳';
+            if (text) el.querySelector('span').textContent = text;
+        }
+
+        function drawGnnGraph() {
+            const c = document.getElementById('gnnCanvas');
+            const w = c.clientWidth || 260, h = 64;
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            const nodes = Array.from({ length: 9 }, (_, i) => ({ x: 20 + Math.random() * (w - 40), y: 10 + Math.random() * (h - 20) }));
+            let t = 0;
+            function frame() {
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = 'rgba(140,111,191,0.3)'; ctx.lineWidth = 1;
+                nodes.forEach((n, i) => {
+                    nodes.forEach((m, j) => {
+                        if (j <= i) return;
+                        const d = Math.hypot(n.x - m.x, n.y - m.y);
+                        if (d < 90) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(m.x, m.y); ctx.stroke(); }
+                    });
+                });
+                nodes.forEach((n, i) => {
+                    const pulse = i === 4 ? (Math.sin(t / 6) * 1.5 + 3.5) : 2.4;
+                    ctx.fillStyle = i === 4 ? '#CE9563' : '#8C6FBF';
+                    ctx.beginPath(); ctx.arc(n.x, n.y, pulse, 0, 7); ctx.fill();
+                });
+                t++;
+                if (t < 85) requestAnimationFrame(frame);
+            }
+            frame();
+        }
+
+        function showResult(user, amt) {
+            const name = user.name || user.id;
+            document.getElementById('resultTitle').textContent = 'Payment successful';
+            document.getElementById('resultSub').textContent = `Identified as ${name} · verified by MobileNet embedding + GNN behaviour graph.`;
+            document.getElementById('resultAmt').textContent = `₹${amt.toLocaleString('en-IN')}`;
+            document.getElementById('resultTick').textContent = '✓';
+            document.getElementById('resultOverlay').classList.add('show');
+            amount = 0;
+            document.getElementById('amountDisplay').innerHTML = '<span>₹</span>0';
+            updateScanButton();
+        }
+        function closeResult() {
+            document.getElementById('resultOverlay').classList.remove('show');
+            if (!payStream) document.getElementById('payPlaceholder').style.display = 'flex';
+            resetSteps();
+            clearExplanation();
+            document.getElementById('rankPanel').innerHTML = '';
+        }
+
+        /* ============================================================
+           HISTORY — fetches from /api/transactions
+           ============================================================ */
+        async function renderHistory() {
+            const el = document.getElementById('historyList');
+            el.innerHTML = '<div class="empty-note">Loading…</div>';
+            try {
+                const resp = await fetch(`${API_BASE}/transactions`, { signal: AbortSignal.timeout(5000) });
+                if (!resp.ok) throw new Error('Server error');
+                const txns = await resp.json();
+
+                if (!txns.length) {
+                    el.innerHTML = '<div class="empty-note">No transactions yet.</div>';
+                    return;
+                }
+
+                el.innerHTML = txns.map(t => `
+    <div class="hist-row">
+      <div class="hist-left">
+        <img src="${t.userThumbnail || ''}" onerror="this.style.display='none'">
+        <div>
+          <div class="hist-name">
+            ${t.userName}
+            <span class="hist-badge" style="border-color:${t.accepted ? 'var(--teal)' : 'var(--red)'};color:${t.accepted ? 'var(--teal)' : 'var(--red)'}">
+              ${t.accepted ? 'CNN ' + t.cnnScore + '%' : 'REJECTED'}
+            </span>
+          </div>
+          <div class="hist-meta">${new Date(t.createdAt).toLocaleTimeString()} · ${t.mode === 'bank' ? 'Direct bank debit' : 'Mini-wallet'}</div>
+          ${t.explanation ? `<div style="font-size:10px;color:var(--ink-faint);margin-top:4px;font-family:'IBM Plex Mono';line-height:1.4;">${t.explanation}</div>` : ''}
+        </div>
+      </div>
+      <div class="hist-amt" style="color:${t.accepted ? 'var(--red)' : 'var(--ink-faint)'}">
+        ${t.accepted ? '−' : ''}₹${t.amount.toLocaleString('en-IN')}
+      </div>
+    </div>`).join('');
+
+            } catch (err) {
+                el.innerHTML = '<div class="empty-note">⚠ Could not load transactions — is the server running?</div>';
+                setOfflineBanner(true);
+            }
+        }
+    </script>
+</body>
+
+</html>
